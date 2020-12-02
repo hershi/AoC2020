@@ -29,7 +29,7 @@ fn parse_line(line: &str) -> ParsedLine {
         password: caps.get(4).unwrap().as_str().to_string()}
 }
 
-fn is_valid(line: &str) -> bool {
+fn is_valid_part1(line: &str) -> bool {
     let parsed_line = parse_line(line);
     let char_map = parsed_line.password
         .chars()
@@ -42,14 +42,35 @@ fn is_valid(line: &str) -> bool {
     count >= parsed_line.low && count <= parsed_line.high
 }
 
+fn is_valid_part2(line: &str) -> bool {
+    let parsed_line = parse_line(line);
+    let c1 = parsed_line.password.chars().nth(parsed_line.low-1).map_or(false, |c| c==parsed_line.c);
+    let c2 = parsed_line.password.chars().nth(parsed_line.high-1).map_or(false, |c| c==parsed_line.c);
+
+    c1 ^ c2
+}
+
+fn part_1(input: &Vec<String>) {
+    let valid_count = input.iter()
+        .filter(|x| is_valid_part1(x))
+        .count();
+
+    println!("Valid passwords count: {}", valid_count);
+}
+
+fn part_2(input: &Vec<String>) {
+    let valid_count = input.iter()
+        .filter(|x| is_valid_part2(x))
+        .count();
+
+    println!("Valid passwords count: {}", valid_count);
+}
+
 fn main() {
     println!("Raeding input");
     let input = read_input();
     println!("Input read");
 
-    let valid_count = input.iter()
-        .filter(|x| is_valid(x))
-        .count();
-
-    println!("Valid passwords count: {}", valid_count);
+    part_1(&input);
+    part_2(&input);
 }
