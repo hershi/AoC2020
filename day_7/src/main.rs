@@ -75,9 +75,27 @@ fn part1(rules: &HashMap<String, Vec<(String, usize)>>,
     println!("part 1: {}", result.len());
 }
 
-fn part2(rules: &HashMap<String, Vec<(String, usize)>>,
-         inverted: &HashMap<String, Vec<String>>) {
-    println!("Valid Part 2: {}", 1);
+fn find_num(color: &str,
+            rules: &HashMap<String, Vec<(String, usize)>>,
+            lookup: &mut HashMap<String, usize>) -> usize {
+    if lookup.contains_key(color) {
+        return *lookup.get(color).unwrap();
+    }
+
+    rules.get(color).unwrap().iter()
+        .map(|(c, n)| {
+            let num = find_num(c, rules, lookup);
+            lookup.insert(c.clone(), num);
+            println!("aaa: {} {} {}", c, n, num);
+            (num + 1) * n
+        })
+        .sum()
+}
+
+fn part2(rules: &HashMap<String, Vec<(String, usize)>>) {
+    let mut lookup = HashMap::new();
+    let n = find_num("shiny gold", rules, &mut lookup);
+    println!("Valid Part 2: {}", n);
 }
 
 fn main() {
@@ -85,5 +103,5 @@ fn main() {
     let rules = read_input();
     let inverted = invert_rules(&rules);
     part1(&rules, &inverted);
-    part2(&rules, &inverted);
+    part2(&rules);
 }
