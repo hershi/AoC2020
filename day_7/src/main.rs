@@ -2,6 +2,7 @@
 
 use regex::Regex;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
@@ -33,12 +34,15 @@ fn parse_rule(line: String) -> (String, Vec<(String, usize)>) {
     (key, contents)
 }
 
-fn invert_rules(rules: &HashMap<String, Vec<(String, usize)>>) -> HashMap<String, String> {
+fn invert_rules(rules: &HashMap<String, Vec<(String, usize)>>) -> HashMap<String, Vec<String>> {
     rules.iter()
         .flat_map(|rule| rule.1.iter()
                   .map(|c| (c.0.clone(), rule.0.clone()))
                   .collect::<Vec<_>>())
-        .collect()
+        .fold(HashMap::new(), |mut acc, (c1, c2)| {
+            (*acc.entry(c1).or_insert(Vec::new())).push(c2);
+            acc
+        })
 }
 
 fn read_input() -> HashMap<String, Vec<(String, usize)>> {
@@ -51,12 +55,28 @@ fn read_input() -> HashMap<String, Vec<(String, usize)>> {
 }
 
 fn part1(rules: &HashMap<String, Vec<(String, usize)>>,
-         inverted: &HashMap<String, String>) {
-    println!("Valid Part 1: {:?}", inverted);
+         inverted: &HashMap<String, Vec<String>>) {
+    let mut to_check = inverted.get("shiny gold").unwrap().clone();
+    let mut result = HashSet::new();
+    while !to_check.is_empty() {
+        let color = to_check.pop().unwrap();
+        if inverted.contains_key(&color) {
+            for c in inverted.get(&color).unwrap() {
+                if !result.contains(c) {
+                    to_check.push(c.to_string());
+                }
+            }
+        }
+
+        result.insert(color);
+    }
+
+    println!("part 1: {:?}", result);
+    println!("part 1: {}", result.len());
 }
 
 fn part2(rules: &HashMap<String, Vec<(String, usize)>>,
-         inverted: &HashMap<String, String>) {
+         inverted: &HashMap<String, Vec<String>>) {
     println!("Valid Part 2: {}", 1);
 }
 
