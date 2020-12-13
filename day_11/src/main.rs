@@ -91,11 +91,6 @@ impl Grid {
     }
 
     fn next_gen(&mut self) -> bool {
-        let neighbors :Vec<(isize,isize)> = vec![
-            (-1,-1), (-1,0), (-1,1),
-            (0,-1), (0,1),
-            (1,-1), (1,0), (1,1),];
-
         let flips = (0..self.height)
             .flat_map(|y| iter::repeat(y).take(self.width))
             .zip((0..self.width).cycle())
@@ -105,16 +100,15 @@ impl Grid {
                 match self.grid[y * self.width + x] {
                     Cell::Floor => false,
                     Cell::Free => self.get_neighbors(x,y)
-                    .iter()
-                    .filter(|(a,b)| self.is_occupied(*a,*b))
-                    .count() == 0,
+                        .iter()
+                        .all(|(a,b)| !self.is_occupied(*a,*b)),
                     Cell::Occupied => self.get_neighbors(x,y)
-                    .iter()
-                    .filter(|(a,b)| self.is_occupied(*a,*b))
-                    .count() >= 4,
+                        .iter()
+                        .filter(|(a,b)| self.is_occupied(*a,*b))
+                        .count() >= 4,
                 }
             })
-            .collect::<Vec<_>>();
+        .collect::<Vec<_>>();
 
         let ret = flips.len() > 0;
         for (x,y) in flips {
