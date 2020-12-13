@@ -69,32 +69,25 @@ impl Grid {
             }
     }
 
-    fn is_occupied(&self, x: usize, y: usize) -> bool {
-        if x >= self.width { return false; }
-        if y >= self.height { return false; }
+    fn is_occupied(&self, x: isize, y: isize) -> bool {
+        if x < 0 || x >= self.width as isize { return false; }
+        if y < 0 || y >= self.height as isize { return false; }
 
-        self.grid[y * self.width + x].is_occupied()
+        self.grid[y as usize * self.width + x as usize].is_occupied()
     }
 
-    fn get_neighbors(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
-        let neighbors :Vec<(isize,isize)> = vec![
-            (-1,-1), (-1,0), (-1,1),
-            (0,-1), (0,1),
-            (1,-1), (1,0), (1,1),];
-        iter::repeat((x,y))
-            .zip(neighbors.iter())
-            .map(|((x,y), (dx,dy))| (x as isize + dx, y as isize+dy))
-            .filter(|&(a,b)| a >= 0 && a < self.width as isize
-                    && b >= 0 && b < self.height as isize)
-            .map(|(x,y)| (x as usize, y as usize))
-            .collect()
+    fn get_neighbors(&self, x: usize, y: usize) -> Vec<(isize, isize)> {
+        let x = x as isize;
+        let y = y as isize;
+        vec![
+            (x-1,y-1), (x-1,y), (x-1,y+1),
+            (x,y-1), (x,y+1),
+            (x+1,y-1), (x+1,y), (x+1,y+1),]
     }
 
     fn next_gen(&mut self) -> bool {
-        let flips = (0..self.height)
-            .flat_map(|y| iter::repeat(y).take(self.width))
-            .zip((0..self.width).cycle())
-            .map(|(y,x)|(x,y))
+        let flips = (0..self.width).cycle()
+            .zip((0..self.height).flat_map(|y| iter::repeat(y).take(self.width)))
             .filter(|(x,y)| self.grid[y * self.width + x].is_seat())
             .filter(|&(x,y)| {
                 match self.grid[y * self.width + x] {
