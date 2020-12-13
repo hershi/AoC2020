@@ -1,3 +1,5 @@
+#[macro_use] extern crate lazy_static;
+
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
@@ -76,6 +78,13 @@ impl Grid {
         self.grid[y as usize * self.width + x as usize].is_occupied()
     }
 
+    fn is_seat(&self, x: isize, y: isize) -> bool {
+        if x < 0 || x >= self.width as isize { return false; }
+        if y < 0 || y >= self.height as isize { return false; }
+
+        self.grid[y as usize * self.width + x as usize].is_seat()
+    }
+
     fn get_neighbors(&self, x: usize, y: usize) -> Vec<(isize, isize)> {
         let x = x as isize;
         let y = y as isize;
@@ -85,10 +94,70 @@ impl Grid {
             (x+1,y-1), (x+1,y), (x+1,y+1),]
     }
 
+    fn get_neighbor_2(&self,
+                      x:usize,
+                      y: usize,
+                      dir: &(isize, isize)) -> Option<(isize, isize)> {
+
+        let mut current_x = x as isize;
+        let mut current_y = y as isize;
+        loop {
+            current_x += dir.0;
+            current_y += dir.1;
+
+            if current_x < 0 || current_x >= self.width as isize { return None; }
+            if current_y < 0 || current_y >= self.height as isize { return None; }
+            if self.is_seat(current_x, current_y) {
+                return Some((current_x, current_y));
+            }
+        }
+    }
+
+    fn get_neighbors_2(&self, x: usize, y: usize) -> Vec<(isize, isize)> {
+        lazy_static! {
+            static ref directions: Vec<(isize, isize)> = vec![
+                (-1,-1), (-1,0), (-1,1),
+                (0,-1), (0,1),
+                (1,-1), (1,0), (1,1),
+            ];
+        }
+
+        let neighbors = 
+        directions.iter()
+            .flat_map(|dir|self.get_neighbor_2(x,y,&dir))
+            .collect();
+
+        neighbors
+    }
+
+    fn next_gen_2(&mut self) -> bool {
+        let flips = (0..self.width).cycle()
+            .zip((0..self.height).flat_map(|y| iter::repeat(y).take(self.width)))
+            .filter(|&(x,y)| {
+                match self.grid[y * self.width + x] {
+                    Cell::Free => self.get_neighbors_2(x,y)
+                        .iter()
+                        .all(|(a,b)| !self.is_occupied(*a,*b)),
+                    Cell::Occupied => self.get_neighbors_2(x,y)
+                        .iter()
+                        .filter(|(a,b)| self.is_occupied(*a,*b))
+                        .count() >= 5,
+                    Cell::Floor => false,
+                }
+            })
+        .collect::<Vec<_>>();
+
+        let ret = flips.len() > 0;
+        for (x,y) in flips {
+            self.flip(x,y);
+        }
+
+        ret
+    }
+
     fn next_gen(&mut self) -> bool {
         let flips = (0..self.width).cycle()
             .zip((0..self.height).flat_map(|y| iter::repeat(y).take(self.width)))
-            .filter(|(x,y)| self.grid[y * self.width + x].is_seat())
             .filter(|&(x,y)| {
                 match self.grid[y * self.width + x] {
                     Cell::Floor => false,
@@ -131,6 +200,17 @@ fn part1(input: &Grid) {
 }
 
 fn part2(input: &Grid) {
+    let mut grid = input.clone();
+    let mut i = 0;
+    loop {
+        if grid.next_gen_2() == false { break; }
+        i += 1;
+    }
+
+    let occupied = grid.grid.iter()
+        .filter(|c| c.is_occupied())
+        .count();
+    println!("Res: {}", occupied);
 }
 
 fn main() {
