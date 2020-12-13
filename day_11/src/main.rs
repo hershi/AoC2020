@@ -1,13 +1,9 @@
-#[macro_use] extern crate lazy_static;
-
-use regex::Regex;
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
+use std::iter;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Cell {
     Floor,
     Free,
@@ -23,9 +19,24 @@ impl Cell {
             _ => panic!("Bad input"),
         }
     }
+
+    fn is_occupied(&self) -> bool {
+        match self {
+            Cell::Occupied => true,
+            _ => false,
+        }
+    }
+
+    fn is_seat(&self) -> bool {
+        match self {
+            Cell::Occupied => true,
+            Cell::Free => true,
+            _ => false,
+        }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Grid {
     grid: Vec<Cell>,
     width: usize,
@@ -45,16 +56,9 @@ impl Grid {
         Grid{grid, width, height}
     }
 
-    fn get(&self, x: usize, y: usize) -> &Cell {
-        assert!(x >= 0 && x < self.width);
-        assert!(y >= 0 && y < self.height);
-
-        &self.grid[y * self.width + x]
-    }
-
     fn flip(&mut self, x: usize, y: usize) {
-        assert!(x >= 0 && x < self.width);
-        assert!(y >= 0 && y < self.height);
+        assert!(x < self.width);
+        assert!(y < self.height);
 
         let p = y * self.width + x;
         self.grid[p] =
@@ -63,6 +67,61 @@ impl Grid {
                 Cell::Free => Cell::Occupied,
                 Cell::Occupied => Cell::Free,
             }
+    }
+
+    fn is_occupied(&self, x: usize, y: usize) -> bool {
+        if x >= self.width { return false; }
+        if y >= self.height { return false; }
+
+        self.grid[y * self.width + x].is_occupied()
+    }
+
+    fn get_neighbors(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
+        let neighbors :Vec<(isize,isize)> = vec![
+            (-1,-1), (-1,0), (-1,1),
+            (0,-1), (0,1),
+            (1,-1), (1,0), (1,1),];
+        iter::repeat((x,y))
+            .zip(neighbors.iter())
+            .map(|((x,y), (dx,dy))| (x as isize + dx, y as isize+dy))
+            .filter(|&(a,b)| a >= 0 && a < self.width as isize
+                    && b >= 0 && b < self.height as isize)
+            .map(|(x,y)| (x as usize, y as usize))
+            .collect()
+    }
+
+    fn next_gen(&mut self) -> bool {
+        let neighbors :Vec<(isize,isize)> = vec![
+            (-1,-1), (-1,0), (-1,1),
+            (0,-1), (0,1),
+            (1,-1), (1,0), (1,1),];
+
+        let flips = (0..self.height)
+            .flat_map(|y| iter::repeat(y).take(self.width))
+            .zip((0..self.width).cycle())
+            .map(|(y,x)|(x,y))
+            .filter(|(x,y)| self.grid[y * self.width + x].is_seat())
+            .filter(|&(x,y)| {
+                match self.grid[y * self.width + x] {
+                    Cell::Floor => false,
+                    Cell::Free => self.get_neighbors(x,y)
+                    .iter()
+                    .filter(|(a,b)| self.is_occupied(*a,*b))
+                    .count() == 0,
+                    Cell::Occupied => self.get_neighbors(x,y)
+                    .iter()
+                    .filter(|(a,b)| self.is_occupied(*a,*b))
+                    .count() >= 4,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let ret = flips.len() > 0;
+        for (x,y) in flips {
+            self.flip(x,y);
+        }
+
+        ret
     }
 }
 
@@ -73,7 +132,15 @@ fn read_input() -> Grid {
 }
 
 fn part1(input: &Grid) {
-    println!("{:?}", input);
+    let mut grid = input.clone();
+    loop {
+        if grid.next_gen() == false { break; }
+    }
+
+    let occupied = grid.grid.iter()
+        .filter(|c| c.is_occupied())
+        .count();
+    println!("Res: {}", occupied);
 }
 
 fn part2(input: &Grid) {
