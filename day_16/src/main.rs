@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
-use std::cmp::min;
 use std::cmp::max;
 
 lazy_static! {
@@ -48,6 +47,11 @@ fn is_valid(val: usize, valid_ranges: &Vec<(usize, usize)>) -> bool {
         .any(|&(l,h)| val >= l && val <= h)
 }
 
+fn is_valid_1(val: usize, ranges: &(usize, usize, usize, usize)) -> bool {
+    (val >= ranges.0 && val <= ranges.1)
+    || ( val >= ranges.2 && val <= ranges.3)
+}
+
 fn get_valid_ranges() -> Vec<(usize, usize)> {
     let mut valid_ranges : Vec<(usize, usize)> = RULES
         .values()
@@ -79,6 +83,60 @@ fn part1(input: &Vec<Vec<usize>>) {
     println!("Part 1: {:?}", error_scanning_rate);
 }
 
+fn untangle(mut tracker: Vec<HashMap<&'static str, (usize, usize, usize, usize)>>) -> Vec<(&'static str, usize)> {
+    let mut res = Vec::new();
+
+    loop {
+        let key_counts = RULES.keys()
+            .map(|&key| (key, tracker.iter().filter(|e| e.contains_key(key)).count()))
+            .collect::<Vec<(&'static str, usize)>>();
+
+        for (i, v) in tracker.iter().enumerate() {
+            println!("{}: {:?}", i, v.keys());
+        }
+        println!("{:?}\n\n", key_counts);
+
+        let mut keys_to_remove = tracker.iter()
+            .enumerate()
+            .filter(|(i, e)| e.len() == 1)
+            .map(|(i,e)| (*e.keys().last().unwrap(), i))
+            .collect::<Vec<(&'static str, usize)>>();
+
+        for (key, _) in keys_to_remove.iter() {
+            for e in tracker.iter_mut() {
+                e.remove(key);
+            }
+        }
+
+        if keys_to_remove.len() > 0 {
+            println!("AAAA: {:?}", keys_to_remove);
+            res.append(&mut keys_to_remove);
+            continue;
+        }
+
+        let mut resolved = RULES.keys()
+            .filter(|key| (tracker.iter().filter(|e| e.contains_key(*key)).count()) == 1)
+            .cloned()
+            .collect::<Vec<&'static str>>();
+
+        if resolved.len() == 0 { break; }
+
+        println!("BBBB: {:?}", resolved);
+
+        for key in resolved {
+            for i in 0..tracker.len() {
+                if tracker[i].contains_key(&key) {
+                    res.push((key, i));
+                    tracker[i].remove(key);
+                }
+
+            }
+        }
+    }
+
+    res
+}
+
 fn part2(input: &Vec<Vec<usize>>) {
     let valid_ranges = get_valid_ranges();
 
@@ -86,19 +144,36 @@ fn part2(input: &Vec<Vec<usize>>) {
         .filter(|ticket| ticket.iter().all(|f| is_valid(*f, &valid_ranges)))
         .collect::<Vec<_>>();
 
-    let mut ranges = valid_tickets[0].iter()
-        .map(|&val| (val, val))
-        .collect::<Vec<(usize, usize)>>();
+    let mut tracker  = std::iter::repeat(RULES.clone())
+        .take(valid_tickets[0].len())
+        .collect::<Vec<_>>();
 
+    for ticket in valid_tickets {
+        for (i,val) in ticket.iter().enumerate() {
+            let mut keys_to_remove = Vec::new();
+            for (key, ranges) in tracker[i].iter() {
+                if !is_valid_1(*val, &ranges) {
+                    keys_to_remove.push(key.clone());
+                }
+            }
 
-    for ticket in input {
-        for (i, &val) in ticket.iter().enumerate() {
-            ranges[i].0 = min(ranges[i].0, val);
-            ranges[i].1 = max(ranges[i].1, val);
+            //println!("Removing fields {:?}:{} based on ticket {:?}", keys_to_remove, i, ticket);
+            for key in keys_to_remove {
+                tracker[i].remove(key);
+            }
         }
     }
 
-    println!("Part 2: {:?}", ranges);
+    let res = untangle(tracker);
+
+    println!("Part 2: {:?}", res);
+
+    let r = res.iter()
+        .filter(|(k, _)| k.starts_with("departure"))
+        .map(|(_, i)| MY_TICKET[*i])
+        .fold(1, |acc, v| acc * v);
+
+    println!("Part 2: {:?}", r);
 }
 
 fn main() {
