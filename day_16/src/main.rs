@@ -87,15 +87,6 @@ fn untangle(mut tracker: Vec<HashMap<&'static str, (usize, usize, usize, usize)>
     let mut res = Vec::new();
 
     loop {
-        let key_counts = RULES.keys()
-            .map(|&key| (key, tracker.iter().filter(|e| e.contains_key(key)).count()))
-            .collect::<Vec<(&'static str, usize)>>();
-
-        for (i, v) in tracker.iter().enumerate() {
-            println!("{}: {:?}", i, v.keys());
-        }
-        println!("{:?}\n\n", key_counts);
-
         let mut keys_to_remove = tracker.iter()
             .enumerate()
             .filter(|(i, e)| e.len() == 1)
@@ -108,30 +99,10 @@ fn untangle(mut tracker: Vec<HashMap<&'static str, (usize, usize, usize, usize)>
             }
         }
 
-        if keys_to_remove.len() > 0 {
-            println!("AAAA: {:?}", keys_to_remove);
-            res.append(&mut keys_to_remove);
-            continue;
-        }
+        if keys_to_remove.len() == 0 { break; }
 
-        let mut resolved = RULES.keys()
-            .filter(|key| (tracker.iter().filter(|e| e.contains_key(*key)).count()) == 1)
-            .cloned()
-            .collect::<Vec<&'static str>>();
-
-        if resolved.len() == 0 { break; }
-
-        println!("BBBB: {:?}", resolved);
-
-        for key in resolved {
-            for i in 0..tracker.len() {
-                if tracker[i].contains_key(&key) {
-                    res.push((key, i));
-                    tracker[i].remove(key);
-                }
-
-            }
-        }
+        println!("AAAA: {:?}", keys_to_remove);
+        res.append(&mut keys_to_remove);
     }
 
     res
