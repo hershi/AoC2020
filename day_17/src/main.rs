@@ -74,35 +74,6 @@ impl Grid {
             self.flip(flip);
         }
     }
-
-    //fn print_slices(&self) {
-        //if self.grid.len() == 0 { return; }
-        //let min_z = self.grid.iter()
-            //.map(|c| c.2)
-            //.min()
-            //.unwrap();
-
-        //let max_z = self.grid.iter()
-            //.map(|c| c.2)
-            //.max()
-            //.unwrap();
-
-        //for z in min_z..=max_z {
-            //println!("z={}", z);
-            //for y in 0..10 {
-                //for x in 0..10 {
-                    //if self.grid.contains(&(x,y,z)) {
-                        //print!("#");
-                    //} else {
-                        //print!(".");
-                    //}
-                //}
-                //println!("");
-            //}
-
-            //println!("");
-        //}
-    //}
 }
 
 fn read_input() -> Grid {
@@ -121,12 +92,8 @@ fn part1(input: &Grid) {
     println!("Active cells = {}", input.grid.len());
 }
 
-fn part2(input: &Grid) {
-}
-
 fn main() {
     println!("Reading input");
     let input = read_input();
     part1(&input);
-    part2(&input);
 }
